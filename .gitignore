@@ -1,0 +1,18 @@
+# Maven build files
+target/
+
+# Face data & trained model
+dataset/
+trainer/
+
+# Java compiled classes
+*.class
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS junk
+Thumbs.db
+.DS_Store
