@@ -9,7 +9,7 @@ public class Util {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] h = md.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
-            for (byte b : h) sb.append(String.format("%02x", b));
+            for (byte b : h) sb.append("%02x".formatted(b));
             return sb.toString();
         } catch (Exception e) { return null; }
     }

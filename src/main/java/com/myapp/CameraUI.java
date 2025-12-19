@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -167,7 +168,7 @@ public class CameraUI extends Application {
         } catch (Exception ignored) {}
 
         try {
-            URL url = new URL(remote);
+            URL url = URI.create(remote).toURL();
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
             c.setConnectTimeout(5000);
             c.setReadTimeout(30000);

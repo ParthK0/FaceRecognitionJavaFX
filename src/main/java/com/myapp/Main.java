@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 public class Main {
@@ -81,7 +82,7 @@ public class Main {
             }
 
             // fallback: download from upstream to a temp file
-            URL url = new URL(CASCADE_URL);
+            URL url = URI.create(CASCADE_URL).toURL();
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
             c.setConnectTimeout(5000);
             c.setReadTimeout(15000);

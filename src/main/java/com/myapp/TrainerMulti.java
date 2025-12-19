@@ -16,6 +16,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -139,7 +140,7 @@ public class TrainerMulti {
         } catch (Exception ignored) {}
 
         try {
-            URL url = new URL(remote);
+            URL url = URI.create(remote).toURL();
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
             c.setConnectTimeout(5000);
             c.setReadTimeout(30000);
