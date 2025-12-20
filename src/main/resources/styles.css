@@ -1,0 +1,54 @@
+/* Deep Learning Face Recognition GUI Styles */
+
+.root {
+    -fx-font-family: "Arial", sans-serif;
+}
+
+/* Buttons */
+.button {
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-opacity: 0.8;
+}
+
+/* Text fields */
+.text-field, .text-area {
+    -fx-border-color: #BDC3C7;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.text-field:focused, .text-area:focused {
+    -fx-border-color: #3498DB;
+    -fx-border-width: 2;
+}
+
+/* Table view */
+.table-view {
+    -fx-background-color: white;
+}
+
+.table-view .column-header {
+    -fx-background-color: #34495E;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+}
+
+/* Combo box */
+.combo-box {
+    -fx-border-color: #BDC3C7;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+/* Separator */
+.separator {
+    -fx-background-color: #BDC3C7;
+}
