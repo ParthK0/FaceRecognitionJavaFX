@@ -270,16 +270,23 @@ public class DeepLearningGUI extends Application {
         // Train specific section
         VBox trainSpecificBox = createSectionBox("Train Specific Student");
         
+        Label trainSpecificDesc = new Label("Enter Student ID to train. Dataset path is optional (auto-detected from database).");
+        trainSpecificDesc.setWrapText(true);
+        trainSpecificDesc.setStyle("-fx-font-size: 11; -fx-text-fill: gray;");
+        
         HBox inputBox = new HBox(10);
+        inputBox.setAlignment(Pos.CENTER_LEFT);
+        
         TextField studentIdField = new TextField();
         studentIdField.setPromptText("Student ID");
         studentIdField.setPrefWidth(100);
         
         TextField datasetPathField = new TextField();
-        datasetPathField.setPromptText("Dataset path (e.g., dataset/student_name)");
+        datasetPathField.setPromptText("(Optional) Custom dataset path - leave empty for auto-detect");
         HBox.setHgrow(datasetPathField, Priority.ALWAYS);
         
-        Button btnBrowse = new Button("📁 Browse");
+        Button btnBrowse = new Button("📁");
+        btnBrowse.setTooltip(new javafx.scene.control.Tooltip("Browse for custom dataset directory"));
         btnBrowse.setOnAction(e -> {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("Select Dataset Directory");
@@ -289,13 +296,20 @@ public class DeepLearningGUI extends Application {
             }
         });
         
-        Button btnTrainSpecific = new Button("Train");
+        Button btnTrainSpecific = new Button("🎯 Train Student");
         btnTrainSpecific.setStyle("-fx-background-color: #3498DB; -fx-text-fill: white; -fx-padding: 5 15;");
         
-        inputBox.getChildren().addAll(new Label("Student ID:"), studentIdField, 
-                                      new Label("Dataset:"), datasetPathField, btnBrowse, btnTrainSpecific);
+        VBox studentBox = new VBox(5);
+        HBox studentRow = new HBox(10);
+        studentRow.setAlignment(Pos.CENTER_LEFT);
+        studentRow.getChildren().addAll(new Label("Student ID:"), studentIdField, btnTrainSpecific);
         
-        trainSpecificBox.getChildren().add(inputBox);
+        HBox datasetRow = new HBox(10);
+        datasetRow.setAlignment(Pos.CENTER_LEFT);
+        datasetRow.getChildren().addAll(new Label("Dataset Path:"), datasetPathField, btnBrowse);
+        
+        studentBox.getChildren().addAll(studentRow, datasetRow);
+        trainSpecificBox.getChildren().addAll(trainSpecificDesc, studentBox);
         
         btnTrainSpecific.setOnAction(e -> {
             try {
@@ -649,7 +663,9 @@ public class DeepLearningGUI extends Application {
                 });
                 
                 DeepLearningTrainer trainer = new DeepLearningTrainer();
-                boolean success = trainer.trainStudent(studentId, datasetPath);
+                // Pass null or empty path to let trainer auto-determine the path
+                String actualPath = (datasetPath == null || datasetPath.trim().isEmpty()) ? null : datasetPath;
+                boolean success = trainer.trainStudent(studentId, actualPath);
                 trainer.close();
                 
                 Platform.runLater(() -> {

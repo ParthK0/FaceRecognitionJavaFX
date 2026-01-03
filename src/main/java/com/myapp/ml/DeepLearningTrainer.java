@@ -7,6 +7,9 @@ import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +25,7 @@ public class DeepLearningTrainer {
     private StudentDAO studentDAO;
 
     private static final float MIN_QUALITY_SCORE = 0.5f;
+    private static final String DATASET_BASE_PATH = "dataset";
 
     public DeepLearningTrainer() throws Exception {
         this.faceDetector = new DNNFaceDetector();
@@ -46,14 +50,35 @@ public class DeepLearningTrainer {
                 return false;
             }
 
+            // Auto-determine dataset path if not provided or invalid
+            if (datasetPath == null || datasetPath.trim().isEmpty()) {
+                datasetPath = getStudentDatasetPath(student);
+            }
+
             System.out.println("Training for: " + student.getFullName());
             System.out.println("Dataset path: " + datasetPath + "\n");
 
-            // Load images from dataset
+            // Create dataset directory if it doesn't exist
             File datasetDir = new File(datasetPath);
-            if (!datasetDir.exists() || !datasetDir.isDirectory()) {
-                System.err.println("✗ Dataset directory not found: " + datasetPath);
+            if (!datasetDir.exists()) {
+                System.out.println("Creating dataset directory: " + datasetPath);
+                if (!datasetDir.mkdirs()) {
+                    System.err.println("✗ Failed to create dataset directory");
+                    return false;
+                }
+            }
+
+            if (!datasetDir.isDirectory()) {
+                System.err.println("✗ Dataset path is not a directory: " + datasetPath);
                 return false;
+            }
+
+            // Update student's facial_data_path in database
+            try {
+                studentDAO.updateFacialDataPath(studentId, datasetPath);
+                System.out.println("✓ Updated student's dataset path in database\n");
+            } catch (SQLException e) {
+                System.err.println("⚠ Warning: Failed to update dataset path in database: " + e.getMessage());
             }
 
             File[] imageFiles = datasetDir.listFiles((dir, name) -> 
@@ -179,24 +204,54 @@ public class DeepLearningTrainer {
         System.out.println("╚═══════════════════════════════════════════════════════════════╝\n");
 
         try {
-            List<Student> students = studentDAO.getStudentsWithFacialData();
+            // Get all active students (not just those with facial data already set)
+            List<Student> students = studentDAO.getAllStudents();
             
             if (students.isEmpty()) {
-                System.out.println("✗ No students found with facial data");
+                System.out.println("✗ No students found in database");
                 return;
             }
 
-            System.out.println("Found " + students.size() + " student(s) to train\n");
+            // Filter students that have datasets
+            List<Student> studentsWithDatasets = new ArrayList<>();
+            System.out.println("Checking for existing datasets...\n");
+            
+            for (Student student : students) {
+                String datasetPath = getStudentDatasetPath(student);
+                File datasetDir = new File(datasetPath);
+                
+                if (datasetDir.exists() && datasetDir.isDirectory()) {
+                    File[] images = datasetDir.listFiles((dir, name) -> 
+                        name.toLowerCase().endsWith(".jpg") ||
+                        name.toLowerCase().endsWith(".jpeg") ||
+                        name.toLowerCase().endsWith(".png"));
+                    
+                    if (images != null && images.length > 0) {
+                        studentsWithDatasets.add(student);
+                        System.out.println("✓ Found dataset for " + student.getFullName() + 
+                                         " (" + images.length + " images)");
+                    }
+                }
+            }
+            
+            if (studentsWithDatasets.isEmpty()) {
+                System.out.println("\n✗ No students found with dataset images");
+                System.out.println("Please capture facial images first using the camera feature.");
+                return;
+            }
+
+            System.out.println("\nFound " + studentsWithDatasets.size() + " student(s) to train\n");
 
             int successCount = 0;
-            for (int i = 0; i < students.size(); i++) {
-                Student student = students.get(i);
+            for (int i = 0; i < studentsWithDatasets.size(); i++) {
+                Student student = studentsWithDatasets.get(i);
                 System.out.println("─".repeat(65));
-                System.out.println("Training " + (i + 1) + "/" + students.size() + ": " + 
+                System.out.println("Training " + (i + 1) + "/" + studentsWithDatasets.size() + ": " + 
                                  student.getFullName());
                 System.out.println("─".repeat(65));
 
-                if (trainStudent(student.getStudentId(), student.getFacialDataPath())) {
+                String datasetPath = getStudentDatasetPath(student);
+                if (trainStudent(student.getStudentId(), datasetPath)) {
                     successCount++;
                 }
             }
@@ -205,15 +260,35 @@ public class DeepLearningTrainer {
             System.out.println("\n" + "═".repeat(65));
             System.out.println("OVERALL TRAINING SUMMARY");
             System.out.println("═".repeat(65));
-            System.out.println("Total students:     " + students.size());
+            System.out.println("Total students:       " + studentsWithDatasets.size());
             System.out.println("Successfully trained: " + successCount);
-            System.out.println("Failed:             " + (students.size() - successCount));
+            System.out.println("Failed:               " + (studentsWithDatasets.size() - successCount));
             System.out.println("═".repeat(65) + "\n");
 
         } catch (Exception e) {
             System.err.println("✗ Error during training: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Get the dataset path for a student (creates directory structure)
+     */
+    private String getStudentDatasetPath(Student student) {
+        // Sanitize student name for use as directory name
+        String sanitizedName = student.getFullName()
+            .toLowerCase()
+            .replaceAll("[^a-z0-9]", "_")
+            .replaceAll("_+", "_")
+            .replaceAll("^_|_$", "");
+        
+        // Use admission number as fallback if name sanitization fails
+        if (sanitizedName.isEmpty()) {
+            sanitizedName = "student_" + student.getAdmissionNumber()
+                .replaceAll("[^a-zA-Z0-9]", "_");
+        }
+        
+        return DATASET_BASE_PATH + File.separator + sanitizedName;
     }
 
     /**
